@@ -1,3 +1,5 @@
+from ctypes.wintypes import POINT
+from json.encoder import py_encode_basestring
 import pygame 
 from pygame.locals import *
 import os
@@ -18,6 +20,13 @@ WHITE = [255, 255, 255]
 #LOAD IMAGES
 BG = pygame.image.load(os.path.join('Assets_FB', 'bg.png'))
 GROUND = pygame.image.load(os.path.join('Assets_FB', 'ground.png'))
+PIPE = pygame.image.load(os.path.join('Assets_FB', 'pipe.png'))  
+BUTTON = pygame.image.load(os.path.join('Assets_FB', 'restart.png'))
+
+#LOAD SOUNDS
+HIT = pygame.mixer.Sound(os.path.join('Assets_FB', "hit.mp3"))
+POINTS = pygame.mixer.Sound(os.path.join('Assets_FB', "point.mp3"))
+FLAP = pygame.mixer.Sound(os.path.join('Assets_FB', "wing.mp3"))
 
 # DRAW WINDOW
 def draw_window(bird_group, pipe_group, collision, start, game_over):
@@ -55,7 +64,8 @@ def main():
     
     start = False
     game_over = False
-    collision = False
+    collision = False #to fix collision bug
+    play = False
 
      
     class Bird(pygame.sprite.Sprite):
@@ -101,7 +111,7 @@ def main():
     class Pipe(pygame.sprite.Sprite):
         def __init__(self, x, y, position):
             pygame.sprite.Sprite.__init__(self) # to inherit sprite  functions from sprite class
-            self.image =  pygame.image.load(os.path.join('Assets_FB', 'pipe.png'))   
+            self.image = PIPE  
             self.rect = self.image.get_rect()
     
             if position == 1:
@@ -114,6 +124,15 @@ def main():
             self.rect.x -= scroll_speed
             if self.rect.right <= 0: # to test and witness killing, kill before 0
                 self.kill()
+                
+    class Button():
+        def __init__(self, x, y):
+            self.image = BUTTON
+            self.rect = self.image.get_rect()
+            self.rect.topleft = (x,y)
+            
+        def draw_button(self):
+            WIN.blit(self.image, (self.rect.x, self.rect.y))  
             
                       
     #object creation         
@@ -134,12 +153,18 @@ def main():
                 pygame.quit()
                 
             if event.type == pygame.KEYDOWN:
+                #JUMP
                 if event.key == pygame.K_SPACE and jump == True:
                     if start == False:
-                        start = True   
-                    flappy.vel -= 10
-                    if flappy.vel < -10:
-                        flappy.vel = -10            
+                        start = True 
+                    FLAP.play() # flapping sound      
+                    flappy.vel -= 12
+                    if flappy.vel < -12:
+                        flappy.vel = -12
+                        
+                #RESTART        
+                if event.key == pygame.K_SPACE and game_over == True:
+                    main()            
         
         draw_window(bird_group, pipe_group, collision, start, game_over)
         
@@ -152,6 +177,7 @@ def main():
             flappy.image = pygame.transform.rotate(flappy.images[1], -90) 
             jump = False
             
+            
         #Point_counter
         if len(pipe_group) > 0:
             if flappy.rect.left > pipe_group.sprites()[0].rect.left\
@@ -160,11 +186,11 @@ def main():
                 
             if flappy.rect.left > pipe_group.sprites()[0].rect.right and passed == True:
                 passed = False
-                #print("passed"+ str(points))
                 points += 1
+                POINTS.play()
             
         #stops flapping and displays bird face down 
-        if flappy.rect.bottom >= 770 :
+        if flappy.rect.bottom > 768 :
             game_over = True
             flappy.image = pygame.transform.rotate(flappy.images[1], -90) 
             
@@ -188,12 +214,16 @@ def main():
             ground_scroll -= scroll_speed
             if abs(ground_scroll) > 35:
                 ground_scroll = 0
-                
-        pygame.display.update()
         
-        
-        
-    main()    
+        if game_over == True :
+            button = Button(SCREEN_WIDTH//2 - 50, SCREEN_HEIGHT//2 - 100)
+            button.draw_button()
+       
+        if game_over == True and play == False:
+            HIT.play()
+            play = True
+                    
+        pygame.display.update()  
         
         
 if __name__ == "__main__": 
