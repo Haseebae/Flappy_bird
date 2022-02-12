@@ -11,24 +11,32 @@ SCREEN_HEIGHT = 936
 WIN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("FLAPPY BIRD")
 
+#font
+FONT = pygame.font.SysFont( 'Bauhaus 93', 75)
+WHITE = [255, 255, 255]
+
 #LOAD IMAGES
 BG = pygame.image.load(os.path.join('Assets_FB', 'bg.png'))
 GROUND = pygame.image.load(os.path.join('Assets_FB', 'ground.png'))
 
-#DRAW WINDOW
-def draw_window(bird_group, pipe_group, start, game_over):
+# DRAW WINDOW
+def draw_window(bird_group, pipe_group, collision, start, game_over):
     WIN.blit(BG, (0,0)) #background
     
     bird_group.draw(WIN) # drawing everything from the bird group
     pipe_group.draw(WIN) # draw all pipes
     
-    if start == True:
-        bird_group.update()
+    if start == True :
+        bird_group.update(collision)
     if start == True and game_over == False:
         pipe_group.update()
         
-        
+# DRAW POINTS       
+def draw_score(points):
+    score = FONT.render(str(points), 1, WHITE)   
+    WIN.blit(score,(SCREEN_WIDTH//2,50))     
 
+# MAIN
 def main():
     FPS = 60
     clock = pygame.time.Clock()
@@ -42,8 +50,13 @@ def main():
     
     jump = True
     
+    points = 0
+    passed = False
+    
     start = False
     game_over = False
+    collision = False
+
      
     class Bird(pygame.sprite.Sprite):
         def __init__(self, x, y): #initiate the class
@@ -61,8 +74,8 @@ def main():
             self.rect.center = [x,y] # centre start position of the bird
             self.vel = 0
             self.tap = False # prevents holding down the spacebar: check JUMP
-            
-        def update(self):
+             
+        def update(self, collision):
             
             #gravity
             self.vel += 0.5 #acceleration; 
@@ -73,16 +86,17 @@ def main():
             
                 
             #flapping animation
-            self.counter += 1
-            cooldown = 5
-            if self.counter >= cooldown:
-                self.counter = 0
-                self.index += 1
-                if self.index >= len(self.images):
-                    self.index = 0
-                self.image = self.images[self.index]
-                
-            self.image = pygame.transform.rotate(self.images[self.index], -3*self.vel)
+            if collision == False:
+                self.counter += 1
+                cooldown = 5
+                if self.counter >= cooldown:
+                    self.counter = 0
+                    self.index += 1
+                    if self.index >= len(self.images):
+                        self.index = 0
+                    self.image = self.images[self.index]
+                    
+                self.image = pygame.transform.rotate(self.images[self.index], -3*self.vel)
                 
     class Pipe(pygame.sprite.Sprite):
         def __init__(self, x, y, position):
@@ -127,23 +141,35 @@ def main():
                     if flappy.vel < -10:
                         flappy.vel = -10            
         
-        draw_window(bird_group, pipe_group, start, game_over)
+        draw_window(bird_group, pipe_group, collision, start, game_over)
+        
+        draw_score(points)
         
         #Collision
         if pygame.sprite.groupcollide(bird_group, pipe_group, False, False) or flappy.rect.top <= 0:
+            collision = True
             game_over = True
             flappy.image = pygame.transform.rotate(flappy.images[1], -90) 
             jump = False
             
+        #Point_counter
+        if len(pipe_group) > 0:
+            if flappy.rect.left > pipe_group.sprites()[0].rect.left\
+                and flappy.rect.right < pipe_group.sprites()[0].rect.right and passed == False:
+                passed = True  
+                
+            if flappy.rect.left > pipe_group.sprites()[0].rect.right and passed == True:
+                passed = False
+                #print("passed"+ str(points))
+                points += 1
             
-        
-        #stops flapping and displays bird face down
+        #stops flapping and displays bird face down 
         if flappy.rect.bottom >= 770 :
             game_over = True
             flappy.image = pygame.transform.rotate(flappy.images[1], -90) 
             
      
-            bird_group.update()
+            
         WIN.blit(GROUND, (ground_scroll, 768))
         
         if start == True and game_over == False:
@@ -152,7 +178,7 @@ def main():
             time_now = pygame.time.get_ticks()  
             if time_now - last_pipe >= pipe_freq:
                 last_pipe = time_now
-                pipe_height = random.randint(100, 600)
+                pipe_height = random.randint(200, 600)
                 btm_pipe = Pipe(SCREEN_WIDTH, pipe_height + pipe_gap//2, -1 )
                 top_pipe = Pipe(SCREEN_WIDTH, pipe_height - pipe_gap//2, 1 )
                 pipe_group.add(btm_pipe) 
@@ -166,6 +192,8 @@ def main():
         pygame.display.update()
         
         
+        
+    main()    
         
         
 if __name__ == "__main__": 
