@@ -1,6 +1,6 @@
 # Flappy Bird
 Flappy bird created using pygame library
-This is my second project using pygame.
+
 
 1) Download and install pygame:
   a)Open terminal/cmd and run the following code, If one fails to work please try the alternative:
